@@ -15,7 +15,7 @@ public partial class ApplicationDbContext : IdentityDbContext
     }
 
     public virtual DbSet<City> Cities { get; set; }
-
+        
     public virtual DbSet<Order> Orders { get; set; }
 
     public virtual DbSet<TransportLogistic.Models.Route> Routes { get; set; }
@@ -79,6 +79,10 @@ public partial class ApplicationDbContext : IdentityDbContext
 
         modelBuilder.Entity<TransportLogistic.Models.Route>(entity =>
         {
+            entity.HasKey(e => e.Id).HasName("PK_routes");
+
+            entity.ToTable("routes");
+
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
             entity.Property(e => e.Distance).HasColumnName("distance");
