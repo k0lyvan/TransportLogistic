@@ -35,8 +35,8 @@ public partial class ApplicationDbContext : IdentityDbContext
             entity.ToTable("cities");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+                .ValueGeneratedOnAdd();
+                
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
