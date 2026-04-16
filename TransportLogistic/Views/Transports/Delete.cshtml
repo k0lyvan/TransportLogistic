@@ -1,0 +1,43 @@
+﻿@model TransportLogistic.Models.Transport
+
+@{
+    ViewData["Title"] = "Удалить транспорт";
+}
+
+<h1>Удалить транспорт</h1>
+
+<div class="alert alert-danger">
+    <h3>Вы уверены, что хотите удалить этот транспорт?</h3>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            Модель
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Model)
+        </dd>
+
+        <dt class="col-sm-2">
+            Государственный номер
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.CarNumber)
+        </dd>
+
+        <dt class="col-sm-2">
+            Вместимость
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Capacity) мест
+        </dd>
+    </dl>
+
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Удалить" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+    </form>
+</div>

@@ -1,0 +1,45 @@
+﻿@model TransportLogistic.Models.Transport
+
+@{
+    ViewData["Title"] = "Добавить транспорт";
+}
+
+<h1>Добавить транспорт</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Model" class="control-label">Модель</label>
+                <input asp-for="Model" class="form-control" placeholder="Например: Mercedes Sprinter" />
+                <span asp-validation-for="Model" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="CarNumber" class="control-label">Государственный номер</label>
+                <input asp-for="CarNumber" class="form-control" placeholder="А123ВС77" />
+                <span asp-validation-for="CarNumber" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Capacity" class="control-label">Вместимость (мест)</label>
+                <input asp-for="Capacity" class="form-control" type="number" min="1" placeholder="50" />
+                <span asp-validation-for="Capacity" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Добавить" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
