@@ -1,0 +1,52 @@
+﻿@using Microsoft.AspNetCore.Identity
+@model IdentityUser
+
+@{
+    ViewData["Title"] = "Удалить пользователя";
+    var roles = ViewBag.Roles as List<string>;
+}
+
+<h1>Удалить пользователя</h1>
+
+<div class="alert alert-danger">
+    <h3>Вы уверены, что хотите удалить этого пользователя?</h3>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            Email
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Email)
+        </dd>
+
+        <dt class="col-sm-2">
+            Имя пользователя
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.UserName)
+        </dd>
+
+        <dt class="col-sm-2">
+            Роли
+        </dt>
+        <dd class="col-sm-10">
+            @if (roles != null && roles.Any())
+            {
+                @string.Join(", ", roles)
+            }
+            else
+            {
+                <span class="text-muted">Нет ролей</span>
+            }
+        </dd>
+    </dl>
+
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Удалить" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+    </form>
+</div>

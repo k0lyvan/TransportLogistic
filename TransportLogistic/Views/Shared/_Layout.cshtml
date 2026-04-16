@@ -24,7 +24,6 @@
 
                         @if (User.Identity.IsAuthenticated)
                         {
-                            <!-- ★★★ ССЫЛКА НА TRIPS ★★★ -->
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-area="" asp-controller="Trips" asp-action="Index">Рейсы</a>
                             </li>
@@ -48,6 +47,22 @@
                                     </ul>
                                 </li>
                             }
+                        }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown">
+                                    Администрирование
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-controller="Users" asp-action="Index">Пользователи</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Roles" asp-action="Index">Роли</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="Cities" asp-action="Index">Города</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Routes" asp-action="Index">Маршруты</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Transports" asp-action="Index">Транспорт</a></li>
+                                </ul>
+                            </li>
                         }
                     </ul>
                     <partial name="_LoginPartial" />
