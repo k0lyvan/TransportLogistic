@@ -1,0 +1,64 @@
+﻿@model TransportLogistic.Models.Trip
+
+@{
+    ViewData["Title"] = "Удалить рейс";
+}
+
+<h1>Удалить рейс</h1>
+
+<div class="alert alert-danger">
+    <h3>Вы уверены, что хотите удалить этот рейс?</h3>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            Маршрут
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.RouteNavigation.Name)
+        </dd>
+
+        <dt class="col-sm-2">
+            Время отправления
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.DepatureTime)
+        </dd>
+
+        <dt class="col-sm-2">
+            Время прибытия
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.ArrivalTime)
+        </dd>
+
+        <dt class="col-sm-2">
+            Транспорт
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.TransportNavigation.Model) - @Html.DisplayFor(model => model.TransportNavigation.CarNumber)
+        </dd>
+
+        <dt class="col-sm-2">
+            Водитель
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.DriverNavigation.UserName)
+        </dd>
+
+        <dt class="col-sm-2">
+            Кондуктор
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.ConductorNavigation.UserName)
+        </dd>
+    </dl>
+
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Удалить" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+    </form>
+</div>

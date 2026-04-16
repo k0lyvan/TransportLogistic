@@ -1,0 +1,71 @@
+﻿@model TransportLogistic.Models.Trip
+
+@{
+    ViewData["Title"] = "Создать рейс";
+}
+
+<h1>Создать новый рейс</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Route" class="control-label">Маршрут</label>
+                <select asp-for="Route" class="form-control" asp-items="ViewBag.Routes">
+                    <option value="">-- Выберите маршрут --</option>
+                </select>
+                <span asp-validation-for="Route" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="DepatureTime" class="control-label">Время отправления</label>
+                <input asp-for="DepatureTime" type="datetime-local" class="form-control" />
+                <span asp-validation-for="DepatureTime" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="ArrivalTime" class="control-label">Время прибытия</label>
+                <input asp-for="ArrivalTime" type="datetime-local" class="form-control" />
+                <span asp-validation-for="ArrivalTime" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Transport" class="control-label">Транспорт</label>
+                <select asp-for="Transport" class="form-control" asp-items="ViewBag.Transports">
+                    <option value="">-- Выберите транспорт --</option>
+                </select>
+                <span asp-validation-for="Transport" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Driver" class="control-label">Водитель</label>
+                <select asp-for="Driver" class="form-control" asp-items="ViewBag.Drivers">
+                    <option value="">-- Выберите водителя --</option>
+                </select>
+                <span asp-validation-for="Driver" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Conductor" class="control-label">Кондуктор</label>
+                <select asp-for="Conductor" class="form-control" asp-items="ViewBag.Conductors">
+                    <option value="">-- Выберите кондуктора --</option>
+                </select>
+                <span asp-validation-for="Conductor" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Создать" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
