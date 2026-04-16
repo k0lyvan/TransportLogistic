@@ -57,40 +57,20 @@ namespace TransportLogistic.Controllers
         [Authorize(Roles = "Admin,Dispatcher")]
         public async Task<IActionResult> Create([Bind("Name,Start,Stop,Distance")] TransportLogistic.Models.Route route)
         {
-            // Добавьте логирование
-            System.Diagnostics.Debug.WriteLine($"Попытка создания: Name={route.Name}, Start={route.Start}, Stop={route.Stop}, Distance={route.Distance}");
-            System.Diagnostics.Debug.WriteLine($"ModelState.IsValid = {ModelState.IsValid}");
-
-            if (!ModelState.IsValid)
-            {
-                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    System.Diagnostics.Debug.WriteLine($"Ошибка валидации: {error.ErrorMessage}");
-                }
-            }
-
             if (ModelState.IsValid)
             {
-                try
+                // Проверяем, что начальный и конечный города разные
+                if (route.Start == route.Stop)
                 {
-                    // Проверяем, что начальный и конечный города разные
-                    if (route.Start == route.Stop)
-                    {
-                        ModelState.AddModelError("Stop", "Начальный и конечный города должны быть разными");
-                        ViewBag.Cities = new SelectList(await _context.Cities.ToListAsync(), "Id", "Name");
-                        return View(route);
-                    }
+                    ModelState.AddModelError("Stop", "Начальный и конечный города должны быть разными");
+                    ViewBag.Cities = new SelectList(await _context.Cities.ToListAsync(), "Id", "Name");
+                    return View(route);
+                }
 
-                    _context.Add(route);
-                    await _context.SaveChangesAsync();
-                    TempData["Message"] = "Маршрут успешно добавлен!";
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Ошибка при сохранении: {ex.Message}");
-                    ModelState.AddModelError("", $"Ошибка при сохранении: {ex.Message}");
-                }
+                _context.Add(route);
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "Маршрут успешно добавлен!";
+                return RedirectToAction(nameof(Index));
             }
 
             ViewBag.Cities = new SelectList(await _context.Cities.ToListAsync(), "Id", "Name");
