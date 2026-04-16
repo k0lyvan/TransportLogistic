@@ -79,7 +79,8 @@ public partial class ApplicationDbContext : IdentityDbContext
 
         modelBuilder.Entity<TransportLogistic.Models.Route>(entity =>
         {
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd();
             entity.Property(e => e.Distance).HasColumnName("distance");
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
