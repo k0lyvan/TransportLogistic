@@ -20,11 +20,12 @@ public partial class Trip
 
     public string? Conductor { get; set; }
 
-    public virtual IdentityUser? ConductorNavigation { get; set; }
-
-    public virtual IdentityUser DriverNavigation { get; set; } = null!;
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual Route RouteNavigation { get; set; } = null!;
 
     public virtual Transport TransportNavigation { get; set; } = null!;
+
+    public virtual IdentityUser DriverNavigation { get; set; } = null!;
+    public virtual IdentityUser? ConductorNavigation { get; set; }
 }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
-using YourProject.Domain.Enums;
 
 namespace TransportLogistic.Models;
 
@@ -17,7 +16,9 @@ public partial class Order
 
     public decimal Price { get; set; }
 
-    public OrderStatus Stasus { get; set; } 
+    public string Stasus { get; set; } = null!;
+
+    public virtual Trip TripNavigation { get; set; } = null!;
 
     public virtual IdentityUser UserNavigation { get; set; } = null!;
 }
