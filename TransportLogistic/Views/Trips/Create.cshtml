@@ -56,6 +56,13 @@
                 <span asp-validation-for="Conductor" class="text-danger"></span>
             </div>
 
+            <!-- ★★★ ДОБАВЬТЕ ПОЛЕ ДЛЯ ЦЕНЫ ★★★ -->
+            <div class="form-group mb-3">
+                <label asp-for="Price" class="control-label">Цена билета (₽)</label>
+                <input asp-for="Price" class="form-control" type="number" step="1" min="0" placeholder="Например: 1500" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+
             <div class="form-group">
                 <input type="submit" value="Создать" class="btn btn-primary" />
                 <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>

@@ -20,6 +20,7 @@ public partial class Trip
 
     public string? Conductor { get; set; }
 
+    public decimal Price { get; set; }
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual Route RouteNavigation { get; set; } = null!;

@@ -1,0 +1,59 @@
+﻿@model TransportLogistic.Models.Order
+
+@{
+    ViewData["Title"] = "Редактировать заказ";
+}
+
+<h1>Редактировать заказ</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="form-group mb-3">
+                <label asp-for="Trip" class="control-label">Рейс</label>
+                <select asp-for="Trip" class="form-control" asp-items="ViewBag.Trips">
+                    <option value="">-- Выберите рейс --</option>
+                </select>
+                <span asp-validation-for="Trip" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="SeatNumber" class="control-label">Номер места</label>
+                <input asp-for="SeatNumber" class="form-control" type="number" min="1" />
+                <span asp-validation-for="SeatNumber" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Price" class="control-label">Цена</label>
+                <input asp-for="Price" class="form-control" type="number" step="0.01" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Stasus" class="control-label">Статус</label>
+                <select asp-for="Stasus" class="form-control">
+                    <option value="Ожидает подтверждения">Ожидает подтверждения</option>
+                    <option value="Подтвержден">Подтвержден</option>
+                    <option value="Отменен">Отменен</option>
+                    <option value="Завершен">Завершен</option>
+                </select>
+                <span asp-validation-for="Stasus" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Сохранить" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

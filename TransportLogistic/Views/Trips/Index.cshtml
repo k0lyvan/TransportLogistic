@@ -38,6 +38,7 @@
             <th>Транспорт</th>
             <th>Водитель</th>
             <th>Кондуктор</th>
+            <th>Цена (₽)</th>
             <th>Действия</th>
         </tr>
     </thead>
@@ -51,6 +52,7 @@
                 <td>@item.TransportNavigation?.Model - @item.TransportNavigation?.CarNumber</td>
                 <td>@(item.DriverNavigation?.UserName ?? item.Driver ?? "Не назначен")</td>
                 <td>@(item.ConductorNavigation?.UserName ?? item.Conductor ?? "Не назначен")</td>
+                <td>@item.Price.ToString("N0") ₽</td>
                 <td>
                     <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Детали</a>
 

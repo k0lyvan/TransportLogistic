@@ -1,0 +1,41 @@
+﻿@model TransportLogistic.Models.Order
+
+@{
+    ViewData["Title"] = "Создать заказ";
+}
+
+<h1>Создать новый заказ</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Trip" class="control-label">Рейс</label>
+                <select asp-for="Trip" class="form-control" asp-items="ViewBag.Trips">
+                    <option value="">-- Выберите рейс --</option>
+                </select>
+                <span asp-validation-for="Trip" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="SeatNumber" class="control-label">Номер места</label>
+                <input asp-for="SeatNumber" class="form-control" type="number" min="1" max="50" />
+                <span asp-validation-for="SeatNumber" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" value="Создать заказ" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

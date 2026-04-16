@@ -137,6 +137,10 @@ public partial class ApplicationDbContext : IdentityDbContext
             entity.Property(e => e.Route).HasColumnName("route");
             entity.Property(e => e.Transport).HasColumnName("transport");
 
+            entity.Property(e => e.Price)
+       .HasColumnType("decimal(18,2)")
+       .HasColumnName("price");
+
             entity.HasOne(d => d.RouteNavigation).WithMany(p => p.Trips)
                 .HasForeignKey(d => d.Route)
                 .OnDelete(DeleteBehavior.ClientSetNull)

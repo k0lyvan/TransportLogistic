@@ -52,13 +52,13 @@ namespace TransportLogistic.Controllers
 
             var trip = await _context.Trips
                 .Include(t => t.RouteNavigation)
-            .ThenInclude(r => r.StartNavigation)  // ← Добавьте это
-        .Include(t => t.RouteNavigation)
-            .ThenInclude(r => r.StopNavigation)   // ← Добавьте это
-        .Include(t => t.TransportNavigation)
-        .Include(t => t.DriverNavigation)
-        .Include(t => t.ConductorNavigation)
-        .FirstOrDefaultAsync(m => m.Id == id);
+                    .ThenInclude(r => r.StartNavigation)
+                .Include(t => t.RouteNavigation)
+                    .ThenInclude(r => r.StopNavigation)
+                .Include(t => t.TransportNavigation)
+                .Include(t => t.DriverNavigation)
+                .Include(t => t.ConductorNavigation)
+                .FirstOrDefaultAsync(m => m.Id == id);
 
             if (trip == null) return NotFound();
 
@@ -86,7 +86,7 @@ namespace TransportLogistic.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Dispatcher")]
-        public async Task<IActionResult> Create([Bind("Route,DepatureTime,ArrivalTime,Transport,Driver,Conductor")] Trip trip)
+        public async Task<IActionResult> Create([Bind("Route,DepatureTime,ArrivalTime,Transport,Driver,Conductor,Price")] Trip trip)  // ← ДОБАВИЛИ Price
         {
             // Удаляем навигационные свойства из валидации
             ModelState.Remove("DriverNavigation");
@@ -101,6 +101,14 @@ namespace TransportLogistic.Controllers
                 if (trip.DepatureTime >= trip.ArrivalTime)
                 {
                     ModelState.AddModelError("DepatureTime", "Время отправления должно быть раньше времени прибытия");
+                    await FillSelectLists(trip.Route, trip.Transport, trip.Driver, trip.Conductor);
+                    return View(trip);
+                }
+
+                // Проверяем цену
+                if (trip.Price <= 0)
+                {
+                    ModelState.AddModelError("Price", "Цена должна быть больше 0");
                     await FillSelectLists(trip.Route, trip.Transport, trip.Driver, trip.Conductor);
                     return View(trip);
                 }
@@ -163,7 +171,7 @@ namespace TransportLogistic.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin,Dispatcher")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Route,DepatureTime,ArrivalTime,Transport,Driver,Conductor")] Trip trip)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Route,DepatureTime,ArrivalTime,Transport,Driver,Conductor,Price")] Trip trip)  // ← ДОБАВИЛИ Price
         {
             if (id != trip.Id) return NotFound();
 
@@ -176,6 +184,14 @@ namespace TransportLogistic.Controllers
 
             if (ModelState.IsValid)
             {
+                // Проверяем цену
+                if (trip.Price <= 0)
+                {
+                    ModelState.AddModelError("Price", "Цена должна быть больше 0");
+                    await FillSelectLists(trip.Route, trip.Transport, trip.Driver, trip.Conductor);
+                    return View(trip);
+                }
+
                 try
                 {
                     _context.Update(trip);
@@ -263,8 +279,8 @@ namespace TransportLogistic.Controllers
 
             ViewBag.Drivers = new SelectList(
                 drivers,
-                "Id",           
-                "DisplayName",  
+                "Id",
+                "DisplayName",
                 selectedDriver
             );
 
@@ -279,8 +295,8 @@ namespace TransportLogistic.Controllers
 
             ViewBag.Conductors = new SelectList(
                 conductors,
-                "Id",           
-                "DisplayName",  
+                "Id",
+                "DisplayName",
                 selectedConductor
             );
         }

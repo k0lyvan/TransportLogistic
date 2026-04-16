@@ -1,0 +1,57 @@
+﻿@model TransportLogistic.Models.Order
+
+@{
+    ViewData["Title"] = "Удалить заказ";
+}
+
+<h1>Удалить заказ</h1>
+
+<div class="alert alert-danger">
+    <h3>Вы уверены, что хотите удалить этот заказ?</h3>
+</div>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">
+            Маршрут
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.RouteNavigation?.Name
+        </dd>
+
+        <dt class="col-sm-3">
+            Дата отправления
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.DepatureTime.ToString("dd.MM.yyyy HH:mm")
+        </dd>
+
+        <dt class="col-sm-3">
+            Место
+        </dt>
+        <dd class="col-sm-9">
+            @Model.SeatNumber
+        </dd>
+
+        <dt class="col-sm-3">
+            Цена
+        </dt>
+        <dd class="col-sm-9">
+            @Model.Price ₽
+        </dd>
+
+        <dt class="col-sm-3">
+            Пассажир
+        </dt>
+        <dd class="col-sm-9">
+            @Model.UserNavigation?.UserName ?? Model.User
+        </dd>
+    </dl>
+
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <input type="submit" value="Удалить" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+    </form>
+</div>

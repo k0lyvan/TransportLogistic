@@ -1,0 +1,110 @@
+﻿@model TransportLogistic.Models.Order
+
+@{
+    ViewData["Title"] = "Детали заказа";
+}
+
+<h1>Детали заказа</h1>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">
+            Маршрут
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.RouteNavigation?.Name
+        </dd>
+
+        <dt class="col-sm-3">
+            Откуда
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.RouteNavigation?.StartNavigation?.Name
+        </dd>
+
+        <dt class="col-sm-3">
+            Куда
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.RouteNavigation?.StopNavigation?.Name
+        </dd>
+
+        <dt class="col-sm-3">
+            Дата отправления
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.DepatureTime.ToString("dd.MM.yyyy HH:mm")
+        </dd>
+
+        <dt class="col-sm-3">
+            Дата прибытия
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.ArrivalTime.ToString("dd.MM.yyyy HH:mm")
+        </dd>
+
+        <dt class="col-sm-3">
+            Транспорт
+        </dt>
+        <dd class="col-sm-9">
+            @Model.TripNavigation?.TransportNavigation?.Model - @Model.TripNavigation?.TransportNavigation?.CarNumber
+        </dd>
+
+        <dt class="col-sm-3">
+            Номер места
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.SeatNumber)
+        </dd>
+
+        <dt class="col-sm-3">
+            Цена
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.Price) ₽
+        </dd>
+
+        <dt class="col-sm-3">
+            Статус
+        </dt>
+        <dd class="col-sm-9">
+            @if (Model.Stasus == "Ожидает подтверждения")
+            {
+                <span class="badge bg-warning">@Model.Stasus</span>
+            }
+            else if (Model.Stasus == "Подтвержден")
+            {
+                <span class="badge bg-success">@Model.Stasus</span>
+            }
+            else if (Model.Stasus == "Отменен")
+            {
+                <span class="badge bg-danger">@Model.Stasus</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">@Model.Stasus</span>
+            }
+        </dd>
+
+        <dt class="col-sm-3">
+            Пассажир
+        </dt>
+        <dd class="col-sm-9">
+            @Model.UserNavigation?.UserName ?? Model.User
+        </dd>
+    </dl>
+</div>
+<div>
+    @if (User.IsInRole("Admin") || User.IsInRole("Dispatcher"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">Редактировать</a>
+        <span> </span>
+    }
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Delete" asp-route-id="@Model?.Id" class="btn btn-danger">Удалить</a>
+        <span> </span>
+    }
+    <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+</div>
