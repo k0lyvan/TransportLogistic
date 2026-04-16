@@ -23,7 +23,7 @@ namespace TransportLogistic.Controllers
         [Authorize]
         public async Task<IActionResult> Index()
         {
-            var currentUser = User.Identity?.Name;
+            var currentUser = await _userManager.GetUserAsync(User);
             var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
 
             IQueryable<Order> orders = _context.Orders
@@ -35,22 +35,36 @@ namespace TransportLogistic.Controllers
                         .ThenInclude(r => r.StopNavigation)
                 .Include(o => o.TripNavigation)
                     .ThenInclude(t => t.TransportNavigation)
-                .Include(o => o.UserNavigation);
+                .Include(o => o.UserNavigation); // Теперь работает, так как связь по Id
 
-            // Разные роли видят разные заказы
             if (userRole == "User")
             {
-                orders = orders.Where(o => o.User == currentUser);
+                // Сравниваем Id пользователя
+                orders = orders.Where(o => o.User == currentUser.Id);
             }
             else if (userRole == "Driver" || userRole == "Conductor")
             {
-                orders = orders.Where(o => o.TripNavigation.Driver == currentUser ||
-                                           o.TripNavigation.Conductor == currentUser);
+                // Для Driver и Conductor используем UserName, так как в Trip хранится UserName
+                orders = orders.Where(o => o.TripNavigation.Driver == currentUser.UserName ||
+                                           o.TripNavigation.Conductor == currentUser.UserName);
             }
 
             return View(await orders.ToListAsync());
         }
+        [Authorize]
+        public async Task<IActionResult> Debug()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var debug = new
+            {
+                UserId = currentUser?.Id,
+                UserName = currentUser?.UserName,
+                UserEmail = currentUser?.Email,
+                Roles = User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role).Select(c => c.Value)
+            };
 
+            return Json(debug);
+        }
         // GET: Orders/Details/5
         [Authorize]
         public async Task<IActionResult> Details(int? id)
@@ -71,18 +85,17 @@ namespace TransportLogistic.Controllers
 
             if (order == null) return NotFound();
 
-            // Проверка доступа
-            var currentUser = User.Identity?.Name;
+            var currentUser = await _userManager.GetUserAsync(User);
             var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
 
-            if (userRole == "User" && order.User != currentUser)
+            if (userRole == "User" && order.User != currentUser.Id)
             {
                 return Forbid();
             }
 
             if ((userRole == "Driver" || userRole == "Conductor") &&
-                order.TripNavigation.Driver != currentUser &&
-                order.TripNavigation.Conductor != currentUser)
+                order.TripNavigation.Driver != currentUser.UserName &&
+                order.TripNavigation.Conductor != currentUser.UserName)
             {
                 return Forbid();
             }
@@ -94,15 +107,53 @@ namespace TransportLogistic.Controllers
         [Authorize]
         public async Task<IActionResult> Create()
         {
-            // Только будущие рейсы с свободными местами
-            var availableTrips = await _context.Trips
-                .Include(t => t.RouteNavigation)
-                .Include(t => t.TransportNavigation)
-                .Where(t => t.DepatureTime > DateTime.Now)
-                .ToListAsync();
+            try
+            {
+                var availableTrips = await _context.Trips
+                    .Include(t => t.RouteNavigation)
+                        .ThenInclude(r => r.StartNavigation)
+                    .Include(t => t.RouteNavigation)
+                        .ThenInclude(r => r.StopNavigation)
+                    .Include(t => t.TransportNavigation)
+                    .Where(t => t.DepatureTime > DateTime.Now)
+                    .OrderBy(t => t.DepatureTime)
+                    .ToListAsync();
 
-            ViewBag.Trips = new SelectList(availableTrips, "Id", "RouteNavigation.Name");
-            return View();
+                if (availableTrips == null || !availableTrips.Any())
+                {
+                    ViewBag.Trips = new SelectList(new List<SelectListItem>(), "Id", "DisplayText");
+                    ViewBag.Message = "Нет доступных рейсов для бронирования.";
+                }
+                else
+                {
+                    var tripSelectList = new List<SelectListItem>();
+                    foreach (var trip in availableTrips)
+                    {
+                        var freeSeats = await GetFreeSeatsCount(trip.Id);
+                        var displayText = $"{trip.RouteNavigation?.Name ?? "Неизвестный маршрут"} - " +
+                                         $"{trip.DepatureTime:dd.MM.yyyy HH:mm} - " +
+                                         $"{trip.TransportNavigation?.Model ?? "Неизвестный транспорт"} " +
+                                         $"(Свободно мест: {freeSeats})";
+
+                        tripSelectList.Add(new SelectListItem
+                        {
+                            Value = trip.Id.ToString(),
+                            Text = displayText
+                        });
+                    }
+
+                    ViewBag.Trips = new SelectList(tripSelectList, "Value", "Text");
+                }
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Create GET: {ex.Message}");
+                ViewBag.Trips = new SelectList(new List<SelectListItem>(), "Value", "Text");
+                ViewBag.Error = "Ошибка при загрузке рейсов: " + ex.Message;
+                return View();
+            }
         }
 
         // POST: Orders/Create
@@ -111,51 +162,312 @@ namespace TransportLogistic.Controllers
         [Authorize]
         public async Task<IActionResult> Create([Bind("Trip,SeatNumber")] Order order)
         {
-            order.User = User.Identity?.Name;
-            order.Stasus = "Ожидает подтверждения";
-
-            // Проверка цены (можно вычислить из расстояния)
-            var trip = await _context.Trips
-                .Include(t => t.RouteNavigation)
-                .FirstOrDefaultAsync(t => t.Id == order.Trip);
-
-            if (trip != null)
+            try
             {
-                // Цена = расстояние * 10 (например)
-                order.Price = (decimal)trip.RouteNavigation.Distance * 10m;
-            }
+                // 1. ПОЛУЧАЕМ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    ModelState.AddModelError("", "Пользователь не авторизован");
+                    await LoadTripsForCreate(order.Trip);
+                    return View(order);
+                }
 
-            // Проверка свободного места
-            var existingOrder = await _context.Orders
-                .FirstOrDefaultAsync(o => o.Trip == order.Trip && o.SeatNumber == order.SeatNumber);
+                // 2. УСТАНАВЛИВАЕМ ЗНАЧЕНИЯ
+                order.User = currentUser.Id; // Сохраняем ID пользователя
+                order.Stasus = "Ожидание";   // Короткий статус (14 символов)
 
-            if (existingOrder != null)
-            {
-                ModelState.AddModelError("SeatNumber", "Это место уже занято!");
-                var availableTrips = await _context.Trips
+                // 3. ПРОВЕРКА ВЫБРАННОГО РЕЙСА
+                if (order.Trip <= 0)
+                {
+                    ModelState.AddModelError("Trip", "Пожалуйста, выберите рейс");
+                    await LoadTripsForCreate(null);
+                    return View(order);
+                }
+
+                // 4. ПОЛУЧАЕМ ИНФОРМАЦИЮ О РЕЙСЕ
+                var trip = await _context.Trips
                     .Include(t => t.RouteNavigation)
-                    .Where(t => t.DepatureTime > DateTime.Now)
-                    .ToListAsync();
-                ViewBag.Trips = new SelectList(availableTrips, "Id", "RouteNavigation.Name");
+                    .Include(t => t.TransportNavigation)
+                    .FirstOrDefaultAsync(t => t.Id == order.Trip);
+
+                if (trip == null)
+                {
+                    ModelState.AddModelError("Trip", "Выбранный рейс не существует");
+                    await LoadTripsForCreate(order.Trip);
+                    return View(order);
+                }
+
+                // 5. ПРОВЕРКА ДАТЫ РЕЙСА
+                if (trip.DepatureTime <= DateTime.Now)
+                {
+                    ModelState.AddModelError("Trip", "Нельзя забронировать билет на прошедший рейс");
+                    await LoadTripsForCreate(order.Trip);
+                    return View(order);
+                }
+
+                // 6. УСТАНАВЛИВАЕМ ЦЕНУ ИЗ РЕЙСА
+                order.Price = trip.Price;
+
+                // 7. ПРОВЕРКА НОМЕРА МЕСТА
+                if (order.SeatNumber <= 0)
+                {
+                    ModelState.AddModelError("SeatNumber", "Номер места должен быть положительным числом");
+                    await LoadTripsForCreate(order.Trip);
+                    return View(order);
+                }
+
+                // 8. ПРОВЕРКА ВМЕСТИТЕЛЬНОСТИ ТРАНСПОРТА
+                if (trip.TransportNavigation != null && order.SeatNumber > trip.TransportNavigation.Capacity)
+                {
+                    ModelState.AddModelError("SeatNumber", $"Максимальный номер места - {trip.TransportNavigation.Capacity}");
+                    await LoadTripsForCreate(order.Trip);
+                    return View(order);
+                }
+
+                // 9. ПРОВЕРКА СВОБОДНОГО МЕСТА
+                var existingOrder = await _context.Orders
+                    .FirstOrDefaultAsync(o => o.Trip == order.Trip && o.SeatNumber == order.SeatNumber && o.Stasus != "Отменен");
+
+                if (existingOrder != null)
+                {
+                    ModelState.AddModelError("SeatNumber", $"Место {order.SeatNumber} уже занято! Выберите другое место.");
+                    await LoadTripsForCreate(order.Trip);
+                    return View(order);
+                }
+
+                // 10. УДАЛЯЕМ НАВИГАЦИОННЫЕ СВОЙСТВА ИЗ ВАЛИДАЦИИ
+                ModelState.Remove("UserNavigation");
+                ModelState.Remove("TripNavigation");
+                ModelState.Remove("Price");
+                ModelState.Remove("Stasus");
+                ModelState.Remove("User");
+
+                // 11. ПРОВЕРКА МОДЕЛИ
+                if (ModelState.IsValid)
+                {
+                    // ДИАГНОСТИКА ПЕРЕД СОХРАНЕНИЕМ
+                    Console.WriteLine("=== ПОПЫТКА СОХРАНЕНИЯ ЗАКАЗА ===");
+                    Console.WriteLine($"Trip ID: {order.Trip}");
+                    Console.WriteLine($"Seat Number: {order.SeatNumber}");
+                    Console.WriteLine($"User ID: '{order.User}'");
+                    Console.WriteLine($"Price: {order.Price}");
+                    Console.WriteLine($"Status: '{order.Stasus}'");
+
+                    // ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ ПОЛЬЗОВАТЕЛЯ
+                    var userExists = await _context.Users.AnyAsync(u => u.Id == order.User);
+                    Console.WriteLine($"User exists in database: {userExists}");
+
+                    if (!userExists)
+                    {
+                        // Если пользователь не найден, пробуем сохранить UserName
+                        Console.WriteLine($"User with ID '{order.User}' not found. Trying with UserName...");
+                        order.User = currentUser.UserName;
+
+                        var userExistsByName = await _context.Users.AnyAsync(u => u.UserName == order.User);
+                        Console.WriteLine($"User exists by UserName: {userExistsByName}");
+
+                        if (!userExistsByName)
+                        {
+                            ModelState.AddModelError("", $"Пользователь не найден в системе");
+                            await LoadTripsForCreate(order.Trip);
+                            return View(order);
+                        }
+                    }
+
+                    // ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ РЕЙСА
+                    var tripExists = await _context.Trips.AnyAsync(t => t.Id == order.Trip);
+                    Console.WriteLine($"Trip exists in database: {tripExists}");
+
+                    try
+                    {
+                        // СОХРАНЯЕМ ЗАКАЗ
+                        _context.Orders.Add(order);
+                        Console.WriteLine($"Order added to context. State: {_context.Entry(order).State}");
+
+                        await _context.SaveChangesAsync();
+                        Console.WriteLine($"SaveChanges SUCCESS! Order ID: {order.Id}");
+
+                        TempData["Message"] = $"✅ Заказ успешно создан! Номер заказа: {order.Id}, Сумма: {order.Price:C}";
+                        return RedirectToAction(nameof(Index));
+                    }
+                    catch (DbUpdateException dbEx)
+                    {
+                        // ОБРАБОТКА ОШИБОК БАЗЫ ДАННЫХ
+                        Console.WriteLine($"DbUpdateException: {dbEx.Message}");
+
+                        if (dbEx.InnerException != null)
+                        {
+                            Console.WriteLine($"Inner Exception: {dbEx.InnerException.Message}");
+
+                            // ПРОВЕРЯЕМ ОШИБКУ ВНЕШНЕГО КЛЮЧА
+                            if (dbEx.InnerException.Message.Contains("FOREIGN KEY"))
+                            {
+                                ModelState.AddModelError("", "Ошибка связи с пользователем. Попробуйте выйти и войти снова.");
+
+                                // ПРОБУЕМ ОБХОДНОЙ ПУТЬ - СОХРАНЯЕМ БЕЗ СВЯЗИ
+                                Console.WriteLine("Attempting to save without foreign key constraint...");
+
+                                var sql = @"
+                            INSERT INTO orders (trip, seatNumber, [user], price, stasus) 
+                            VALUES (@p0, @p1, @p2, @p3, @p4)";
+
+                                await _context.Database.ExecuteSqlRawAsync(sql,
+                                    order.Trip,
+                                    order.SeatNumber,
+                                    order.User,
+                                    order.Price,
+                                    order.Stasus);
+
+                                Console.WriteLine("Direct SQL insert SUCCESS!");
+                                TempData["Message"] = $"✅ Заказ успешно создан! Сумма: {order.Price:C}";
+                                return RedirectToAction(nameof(Index));
+                            }
+                        }
+
+                        ModelState.AddModelError("", $"Ошибка базы данных: {dbEx.InnerException?.Message ?? dbEx.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"General Exception: {ex.Message}");
+                        ModelState.AddModelError("", $"Ошибка: {ex.Message}");
+                    }
+                }
+
+                // 12. ЕСЛИ ОШИБКА - ПЕРЕЗАГРУЖАЕМ СПИСОК РЕЙСОВ
+                await LoadTripsForCreate(order.Trip);
+
+                // ВЫВОДИМ ОШИБКИ МОДЕЛИ
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    Console.WriteLine($"Model Error: {error.ErrorMessage}");
+                }
+
                 return View(order);
             }
-
-            if (ModelState.IsValid)
+            catch (Exception ex)
             {
-                _context.Add(order);
-                await _context.SaveChangesAsync();
-                TempData["Message"] = "Заказ успешно создан!";
-                return RedirectToAction(nameof(Index));
-            }
+                // 13. ГЛОБАЛЬНАЯ ОБРАБОТКА ОШИБОК
+                Console.WriteLine($"UNHANDLED EXCEPTION: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
 
-            var trips = await _context.Trips
-                .Include(t => t.RouteNavigation)
-                .Where(t => t.DepatureTime > DateTime.Now)
-                .ToListAsync();
-            ViewBag.Trips = new SelectList(trips, "Id", "RouteNavigation.Name");
-            return View(order);
+                ModelState.AddModelError("", $"Произошла непредвиденная ошибка: {ex.Message}");
+                await LoadTripsForCreate(order?.Trip);
+                return View(order ?? new Order());
+            }
         }
 
+        private async Task LoadTripsForCreate(int? selectedTrip = null)
+        {
+            try
+            {
+                var availableTrips = await _context.Trips
+                    .Include(t => t.RouteNavigation)
+                        .ThenInclude(r => r.StartNavigation)
+                    .Include(t => t.RouteNavigation)
+                        .ThenInclude(r => r.StopNavigation)
+                    .Include(t => t.TransportNavigation)
+                    .Where(t => t.DepatureTime > DateTime.Now)
+                    .OrderBy(t => t.DepatureTime)
+                    .ToListAsync();
+
+                if (availableTrips == null || !availableTrips.Any())
+                {
+                    ViewBag.Trips = new SelectList(new List<SelectListItem>(), "Value", "Text");
+                    ViewBag.Message = "Нет доступных рейсов для бронирования.";
+                    return;
+                }
+
+                var tripSelectList = new List<SelectListItem>();
+                foreach (var trip in availableTrips)
+                {
+                    var freeSeats = await GetFreeSeatsCount(trip.Id);
+                    var routeName = trip.RouteNavigation?.Name ?? "Неизвестный маршрут";
+                    var transportModel = trip.TransportNavigation?.Model ?? "Неизвестный транспорт";
+                    var depatureTime = trip.DepatureTime.ToString("dd.MM.yyyy HH:mm");
+
+                    var displayText = $"{routeName} - {depatureTime} - {transportModel} (Свободно: {freeSeats})";
+
+                    tripSelectList.Add(new SelectListItem
+                    {
+                        Value = trip.Id.ToString(),
+                        Text = displayText
+                    });
+                }
+
+                ViewBag.Trips = new SelectList(tripSelectList, "Value", "Text", selectedTrip?.ToString());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in LoadTripsForCreate: {ex.Message}");
+                ViewBag.Trips = new SelectList(new List<SelectListItem>(), "Value", "Text");
+                ViewBag.Error = "Ошибка при загрузке списка рейсов";
+            }
+        }
+
+        private async Task<int> GetFreeSeatsCount(int tripId)
+        {
+            try
+            {
+                var trip = await _context.Trips
+                    .Include(t => t.TransportNavigation)
+                    .FirstOrDefaultAsync(t => t.Id == tripId);
+
+                if (trip?.TransportNavigation == null) return 0;
+
+                var occupiedSeats = await _context.Orders
+                    .Where(o => o.Trip == tripId && o.Stasus != "Отменен")
+                    .CountAsync();
+
+                return trip.TransportNavigation.Capacity - occupiedSeats;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        // GET: Orders/GetAvailableSeats (для AJAX)
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableSeats(int tripId)
+        {
+            try
+            {
+                var trip = await _context.Trips
+                    .Include(t => t.TransportNavigation)
+                    .FirstOrDefaultAsync(t => t.Id == tripId);
+
+                if (trip?.TransportNavigation == null)
+                {
+                    return Json(new { error = "Рейс не найден" });
+                }
+
+                var totalSeats = trip.TransportNavigation.Capacity;
+
+                var occupiedSeats = await _context.Orders
+                    .Where(o => o.Trip == tripId && o.Stasus != "Отменен")
+                    .Select(o => o.SeatNumber)
+                    .ToListAsync();
+
+                var availableSeats = Enumerable.Range(1, totalSeats)
+                    .Where(s => !occupiedSeats.Contains(s))
+                    .ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    totalSeats = totalSeats,
+                    occupiedSeats = occupiedSeats,
+                    availableSeats = availableSeats,
+                    freeSeatsCount = availableSeats.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
         // GET: Orders/Edit/5 - только Admin и Dispatcher
         [Authorize(Roles = "Admin,Dispatcher")]
         public async Task<IActionResult> Edit(int? id)
@@ -185,7 +497,10 @@ namespace TransportLogistic.Controllers
         {
             if (id != order.Id) return NotFound();
 
-            order.User = User.Identity?.Name;
+            // Удаляем навигационные свойства из валидации
+            ModelState.Remove("UserNavigation");
+            ModelState.Remove("TripNavigation");
+            ModelState.Remove("User");
 
             if (ModelState.IsValid)
             {

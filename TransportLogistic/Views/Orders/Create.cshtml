@@ -1,19 +1,37 @@
 ﻿@model TransportLogistic.Models.Order
 
 @{
-    ViewData["Title"] = "Создать заказ";
+    ViewData["Title"] = "Создание заказа";
 }
 
-<h1>Создать новый заказ</h1>
+<h1>Создание заказа</h1>
 
 <hr />
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["Message"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-info">@ViewBag.Message</div>
+        }
+
+        @if (ViewBag.Error != null)
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
+
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
             <div class="form-group mb-3">
-                <label asp-for="Trip" class="control-label">Рейс</label>
+                <label asp-for="Trip" class="control-label fw-bold">Выберите рейс</label>
                 <select asp-for="Trip" class="form-control" asp-items="ViewBag.Trips">
                     <option value="">-- Выберите рейс --</option>
                 </select>
@@ -21,14 +39,19 @@
             </div>
 
             <div class="form-group mb-3">
-                <label asp-for="SeatNumber" class="control-label">Номер места</label>
-                <input asp-for="SeatNumber" class="form-control" type="number" min="1" max="50" />
+                <label asp-for="SeatNumber" class="control-label fw-bold">Номер места</label>
+                <input asp-for="SeatNumber" class="form-control" type="number" min="1" />
                 <span asp-validation-for="SeatNumber" class="text-danger"></span>
+                <small class="form-text text-muted" id="seatsInfo"></small>
             </div>
 
-            <div class="form-group">
-                <input type="submit" value="Создать заказ" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Создать заказ
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к списку
+                </a>
             </div>
         </form>
     </div>
@@ -38,4 +61,51 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        $(document).ready(function() {
+            // При выборе рейса показываем информацию о свободных местах
+            $('#Trip').change(function() {
+                var tripId = $(this).val();
+                if (tripId) {
+                    $.ajax({
+                        url: '@Url.Action("GetAvailableSeats", "Orders")',
+                        type: 'GET',
+                        data: { tripId: tripId },
+                        success: function(response) {
+                            if (response.success) {
+                                var info = `Свободных мест: ${response.freeSeatsCount} из ${response.totalSeats}<br>`;
+                                info += `Занятые места: ${response.occupiedSeats.join(', ') || 'нет'}<br>`;
+                                info += `Доступные места: ${response.availableSeats.join(', ') || 'нет'}`;
+                                $('#seatsInfo').html(info);
+
+                                // Валидация вводимого номера места
+                                var seatInput = $('#SeatNumber');
+                                seatInput.attr('max', response.totalSeats);
+                                seatInput.attr('min', 1);
+
+                                seatInput.on('change', function() {
+                                    var seatNum = parseInt($(this).val());
+                                    if (response.occupiedSeats.includes(seatNum)) {
+                                        $(this).addClass('is-invalid');
+                                        $(this).siblings('.text-danger').text('Это место уже занято!');
+                                    } else {
+                                        $(this).removeClass('is-invalid');
+                                        $(this).siblings('.text-danger').text('');
+                                    }
+                                });
+                            } else {
+                                $('#seatsInfo').html('<span class="text-danger">Ошибка загрузки информации о местах</span>');
+                            }
+                        },
+                        error: function() {
+                            $('#seatsInfo').html('<span class="text-danger">Ошибка соединения</span>');
+                        }
+                    });
+                } else {
+                    $('#seatsInfo').html('');
+                }
+            });
+        });
+    </script>
 }

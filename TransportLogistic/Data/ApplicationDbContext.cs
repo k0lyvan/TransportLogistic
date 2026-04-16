@@ -57,7 +57,7 @@ public partial class ApplicationDbContext : IdentityDbContext
                 .HasColumnName("price");
             entity.Property(e => e.SeatNumber).HasColumnName("seatNumber");
             entity.Property(e => e.Stasus)
-                .HasMaxLength(20)
+                .HasMaxLength(25)
                 .HasColumnName("stasus");
             entity.Property(e => e.Trip).HasColumnName("trip");
             entity.Property(e => e.User)
