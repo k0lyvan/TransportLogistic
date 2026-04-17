@@ -82,7 +82,7 @@
                     {
                         <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Уд.</a>
                     }
-                    @if (item.Stasus == "Ожидание" )
+                    @if (item.Stasus == "Ожидает подтверждения")
                     {
                         <a asp-action="Payment" asp-route-id="@item.Id" class="btn btn-sm btn-success">
                             <i class="fas fa-credit-card"></i> Оплатить

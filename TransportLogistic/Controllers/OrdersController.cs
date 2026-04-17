@@ -175,7 +175,7 @@ namespace TransportLogistic.Controllers
 
                 // 2. УСТАНАВЛИВАЕМ ЗНАЧЕНИЯ
                 order.User = currentUser.Id; // Сохраняем ID пользователя
-                order.Stasus = "Ожидание";   // Короткий статус (14 символов)
+                order.Stasus = "Ожидает подтверждения";   // Короткий статус (14 символов)
 
                 // 3. ПРОВЕРКА ВЫБРАННОГО РЕЙСА
                 if (order.Trip <= 0)
@@ -468,7 +468,7 @@ namespace TransportLogistic.Controllers
                 return Json(new { error = ex.Message });
             }
         }
-        // GET: Orders/Edit/5 - только Admin и Dispatcher
+        // GET: Orders/Edit/5
         [Authorize(Roles = "Admin,Dispatcher")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -476,16 +476,22 @@ namespace TransportLogistic.Controllers
 
             var order = await _context.Orders
                 .Include(o => o.TripNavigation)
+                .ThenInclude(t => t.RouteNavigation)
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null) return NotFound();
 
+            // Загружаем доступные рейсы
             var trips = await _context.Trips
                 .Include(t => t.RouteNavigation)
                 .Where(t => t.DepatureTime > DateTime.Now)
                 .ToListAsync();
 
             ViewBag.Trips = new SelectList(trips, "Id", "RouteNavigation.Name", order.Trip);
+
+            // Для отладки - выводим значение User
+            Console.WriteLine($"Editing order {id}: User = {order.User}");
+
             return View(order);
         }
 
@@ -497,6 +503,16 @@ namespace TransportLogistic.Controllers
         {
             if (id != order.Id) return NotFound();
 
+            // Находим существующий заказ в базе данных
+            var existingOrder = await _context.Orders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (existingOrder == null) return NotFound();
+
+            // Сохраняем оригинальное значение User (оно не должно меняться)
+            order.User = existingOrder.User;
+
             // Удаляем навигационные свойства из валидации
             ModelState.Remove("UserNavigation");
             ModelState.Remove("TripNavigation");
@@ -506,23 +522,31 @@ namespace TransportLogistic.Controllers
             {
                 try
                 {
-                    _context.Update(order);
+                    // Явно указываем, какие поля обновляем
+                    _context.Orders.Update(order);
                     await _context.SaveChangesAsync();
                     TempData["Message"] = "Заказ успешно обновлен!";
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!OrderExists(order.Id)) return NotFound();
                     else throw;
                 }
-                return RedirectToAction(nameof(Index));
+                catch (DbUpdateException dbEx)
+                {
+                    Console.WriteLine($"DB Error: {dbEx.InnerException?.Message ?? dbEx.Message}");
+                    ModelState.AddModelError("", $"Ошибка при обновлении: {dbEx.InnerException?.Message ?? dbEx.Message}");
+                }
             }
 
+            // Если ошибка - перезагружаем список рейсов
             var trips = await _context.Trips
                 .Include(t => t.RouteNavigation)
                 .Where(t => t.DepatureTime > DateTime.Now)
                 .ToListAsync();
             ViewBag.Trips = new SelectList(trips, "Id", "RouteNavigation.Name", order.Trip);
+
             return View(order);
         }
 
@@ -589,9 +613,9 @@ namespace TransportLogistic.Controllers
             }
 
             // Проверяем статус заказа
-            if (order.Stasus != "Ожидание")
+            if (order.Stasus != "Ожидает подтверждения")
             {
-                TempData["Error"] = "Оплата возможна только для заказов в статусе 'Ожидание'";
+                TempData["Error"] = "Оплата возможна только для заказов в статусе 'Ожидает подтверждения'";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -628,7 +652,7 @@ namespace TransportLogistic.Controllers
             }
 
             // Проверяем статус заказа
-            if (order.Stasus != "Ожидание")
+            if (order.Stasus != "Ожидает подтверждения")
             {
                 TempData["Error"] = "Этот заказ уже не может быть оплачен";
                 return RedirectToAction(nameof(Index));

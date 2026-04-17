@@ -1,8 +1,518 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Главная";
+    var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+    var userName = User.Identity?.Name;
+    var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransportLogistic - Билеты на автобусы онлайн</title>
+    <style>
+        .hero-section {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.5) 100%);
+            color: white;
+            padding: 100px 0;
+            border-radius: 0 0 30px 30px;
+            margin-bottom: 50px;
+            overflow: hidden;
+        }
+
+            .hero-section::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-image: url('https://avatars.mds.yandex.net/i?id=d2b3df1c2f8c0e922e4d750a98290748_l-8497242-images-thumbs&n=13');
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+                z-index: -1;
+                transform: scale(1);
+                transition: transform 0.3s ease;
+            }
+
+            .hero-section::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 100%);
+                z-index: -1;
+            }
+
+            .hero-section .container {
+                position: relative;
+                z-index: 1;
+            }
+
+            .hero-section h1,
+            .hero-section p,
+            .hero-section .btn-custom,
+            .hero-section .btn-outline-custom {
+                position: relative;
+                z-index: 2;
+            }        
+
+        .hero-section::before {
+            animation: slowZoom 20s ease-in-out infinite alternate;
+        }
+
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+            .feature-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+            .stat-card:hover {
+                transform: scale(1.05);
+            }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .step-circle {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+
+        .testimonial-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px;
+            font-style: italic;
+        }
+
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+            .btn-custom:hover {
+                transform: scale(1.05);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+                color: white;
+            }
+
+        .btn-outline-custom {
+            border: 2px solid white;
+            background: transparent;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+            .btn-outline-custom:hover {
+                background: white;
+                color: #667eea;
+                transform: scale(1.05);
+            }
+
+        .route-card {
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+            .route-card:hover {
+                border-left-width: 8px;
+                background: #f8f9fa;
+            }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h1 class="display-3 fw-bold mb-4 animate__animated animate__fadeInUp">
+                        Путешествуйте с комфортом
+                    </h1>
+                    <p class="lead mb-4 animate__animated animate__fadeInUp animate__delay-1s">
+                        Покупайте билеты на междугородние автобусы онлайн. Удобный поиск, безопасная оплата, электронные билеты.
+                    </p>
+                    <div class="d-flex gap-3 animate__animated animate__fadeInUp animate__delay-2s">
+                        @if (isAuthenticated)
+                        {
+                            <a href="/Orders/Create" class="btn-custom btn-lg">
+                                <i class="fas fa-ticket-alt"></i> Купить билет
+                            </a>
+                            <a href="/Orders" class="btn-outline-custom btn-lg">
+                                <i class="fas fa-list"></i> Мои заказы
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="/Identity/Account/Register" class="btn-custom btn-lg">
+                                <i class="fas fa-user-plus"></i> Регистрация
+                            </a>
+                            <a href="/Identity/Account/Login" class="btn-outline-custom btn-lg">
+                                <i class="fas fa-sign-in-alt"></i> Вход
+                            </a>
+                        }
+                    </div>
+                </div>
+                <div class="col-lg-5 text-center animate__animated animate__fadeInRight">
+                    <!-- Прозрачная иконка поверх фона -->
+                    <div class="glass-icon">
+                        <i class="fas fa-bus fa-8x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Приветственный блок для авторизованных пользователей -->
+    @if (isAuthenticated)
+    {
+        <div class="container mb-4">
+            <div class="alert alert-info border-0 shadow-sm rounded-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-user-circle fa-3x me-3"></i>
+                    <div>
+                        <h4 class="mb-1">Добро пожаловать, @userName!</h4>
+                        <p class="mb-0">
+                            Ваша роль: <strong>@userRole</strong>
+                            @if (userRole == "User")
+                            {
+                                <span> | Вы можете купить билеты и управлять своими заказами</span>
+                            }
+                            else if (userRole == "Driver" || userRole == "Conductor")
+                            {
+                                <span> | Вы можете просматривать заказы на ваших рейсах</span>
+                            }
+                            else if (userRole == "Dispatcher")
+                            {
+                                <span> | Вы можете управлять всеми заказами</span>
+                            }
+                            else if (userRole == "Admin")
+                            {
+                                <span> | У вас полный доступ к системе</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Как это работает -->
+    <div class="container mb-5">
+        <h2 class="text-center mb-5 fw-bold">Как это работает</h2>
+        <div class="row g-4">
+            <div class="col-md-3 text-center">
+                <div class="step-circle">1</div>
+                <h5>Выберите рейс</h5>
+                <p class="text-muted">Найдите подходящий маршрут и время отправления</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="step-circle">2</div>
+                <h5>Выберите место</h5>
+                <p class="text-muted">Выберите удобное место в автобусе</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="step-circle">3</div>
+                <h5>Оплатите</h5>
+                <p class="text-muted">Оплатите билет онлайн банковской картой</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="step-circle">4</div>
+                <h5>Поехали!</h5>
+                <p class="text-muted">Получите билет на email и отправляйтесь в путь</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Популярные направления -->
+    <div class="container mb-5">
+        <h2 class="text-center mb-5 fw-bold">Популярные направления</h2>
+        <div class="row g-4" id="popularRoutes">
+            <div class="col-md-6 col-lg-4">
+                <div class="card route-card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">
+                                    <i class="fas fa-map-marker-alt text-primary"></i> Москва
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    <i class="fas fa-map-marker-alt text-success"></i> Санкт-Петербург
+                                </h5>
+                                <p class="card-text text-muted">
+                                    <i class="fas fa-clock"></i> Отправление: ежедневно с 08:00 до 20:00<br>
+                                    <i class="fas fa-hourglass-half"></i> В пути: ~8 часов<br>
+                                    <i class="fas fa-tag"></i> Цена: от 1500 ₽
+                                </p>
+                            </div>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                        @if (isAuthenticated)
+                        {
+                            <a href="/Orders/Create" class="btn btn-sm btn-primary mt-2">Выбрать билет</a>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card route-card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">
+                                    <i class="fas fa-map-marker-alt text-primary"></i> Москва
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    <i class="fas fa-map-marker-alt text-success"></i> Казань
+                                </h5>
+                                <p class="card-text text-muted">
+                                    <i class="fas fa-clock"></i> Отправление: ежедневно в 09:00, 21:00<br>
+                                    <i class="fas fa-hourglass-half"></i> В пути: ~12 часов<br>
+                                    <i class="fas fa-tag"></i> Цена: от 2000 ₽
+                                </p>
+                            </div>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                        @if (isAuthenticated)
+                        {
+                            <a href="/Orders/Create" class="btn btn-sm btn-primary mt-2">Выбрать билет</a>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card route-card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">
+                                    <i class="fas fa-map-marker-alt text-primary"></i> Москва
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    <i class="fas fa-map-marker-alt text-success"></i> Нижний Новгород
+                                </h5>
+                                <p class="card-text text-muted">
+                                    <i class="fas fa-clock"></i> Отправление: ежедневно в 10:00, 22:00<br>
+                                    <i class="fas fa-hourglass-half"></i> В пути: ~6 часов<br>
+                                    <i class="fas fa-tag"></i> Цена: от 1200 ₽
+                                </p>
+                            </div>
+                            <i class="fas fa-star text-warning"></i>
+                        </div>
+                        @if (isAuthenticated)
+                        {
+                            <a href="/Orders/Create" class="btn btn-sm btn-primary mt-2">Выбрать билет</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Преимущества -->
+    <div class="container mb-5">
+        <h2 class="text-center mb-5 fw-bold">Почему выбирают нас</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card card h-100 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <h5 class="card-title">Безопасная оплата</h5>
+                        <p class="card-text text-muted">Защита данных и безопасные платежи по банковским картам</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card card h-100 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-ticket-alt feature-icon"></i>
+                        <h5 class="card-title">Электронные билеты</h5>
+                        <p class="card-text text-muted">Билеты приходят на email, их можно распечатать или показать на телефоне</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card card h-100 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-headset feature-icon"></i>
+                        <h5 class="card-title">Поддержка 24/7</h5>
+                        <p class="card-text text-muted">Круглосуточная поддержка пассажиров</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Отзывы -->
+    <div class="container mb-5">
+        <h2 class="text-center mb-5 fw-bold">Что говорят наши пассажиры</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <i class="fas fa-quote-left fa-2x text-primary mb-3"></i>
+                    <p>Очень удобный сервис! Купил билет за 5 минут, получил на почту. Автобус приехал вовремя, всё отлично!</p>
+                    <div class="mt-3">
+                        <strong>Анна Иванова</strong>
+                        <div class="text-warning">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <i class="fas fa-quote-left fa-2x text-primary mb-3"></i>
+                    <p>Впервые покупал билет онлайн, переживал. Но всё прошло отлично! Билет прислали сразу после оплаты.</p>
+                    <div class="mt-3">
+                        <strong>Михаил Петров</strong>
+                        <div class="text-warning">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <i class="fas fa-quote-left fa-2x text-primary mb-3"></i>
+                    <p>Хороший сервис, всегда пользуюсь. Места можно выбрать прямо на схеме автобуса, очень удобно!</p>
+                    <div class="mt-3">
+                        <strong>Елена Сидорова</strong>
+                        <div class="text-warning">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Призыв к действию -->
+    <div class="container mb-5">
+        <div class="bg-primary bg-gradient text-white rounded-4 p-5 text-center">
+            <h2 class="mb-3">Готовы отправиться в путь?</h2>
+            <p class="lead mb-4">Выберите свой рейс и купите билет прямо сейчас</p>
+            @if (isAuthenticated)
+            {
+                <a href="/Orders/Create" class="btn btn-light btn-lg px-5">
+                    <i class="fas fa-search"></i> Найти билеты
+                </a>
+            }
+            else
+            {
+                <div class="d-flex gap-3 justify-content-center">
+                    <a href="/Identity/Account/Register" class="btn btn-light btn-lg px-5">
+                        <i class="fas fa-user-plus"></i> Зарегистрироваться
+                    </a>
+                    <a href="/Identity/Account/Login" class="btn btn-outline-light btn-lg px-5">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <script>
+        // Анимация счетчиков статистики
+        function animateCounter(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                element.innerText = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Загрузка реальной статистики через AJAX
+        $(document).ready(function() {
+            $.ajax({
+                url: '/Home/GetStatistics',
+                type: 'GET',
+                success: function(data) {
+                    if (data) {
+                        animateCounter(document.getElementById('routesCount'), 0, data.routesCount || 15, 2000);
+                        animateCounter(document.getElementById('tripsCount'), 0, data.tripsCount || 24, 2000);
+                        animateCounter(document.getElementById('ordersCount'), 0, data.ordersCount || 1250, 2000);
+                        animateCounter(document.getElementById('citiesCount'), 0, data.citiesCount || 8, 2000);
+                    } else {
+                        // Значения по умолчанию, если API не готов
+                        document.getElementById('routesCount').innerText = '15+';
+                        document.getElementById('tripsCount').innerText = '24';
+                        document.getElementById('ordersCount').innerText = '1250+';
+                        document.getElementById('citiesCount').innerText = '8';
+                    }
+                },
+                error: function() {
+                    // Значения по умолчанию при ошибке
+                    document.getElementById('routesCount').innerText = '15+';
+                    document.getElementById('tripsCount').innerText = '24';
+                    document.getElementById('ordersCount').innerText = '1250+';
+                    document.getElementById('citiesCount').innerText = '8';
+                }
+            });
+        });
+    </script>
+
+    <!-- Подключение Animate.css для анимаций -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+</body>
+</html>
