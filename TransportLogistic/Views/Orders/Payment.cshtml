@@ -1,0 +1,135 @@
+﻿@model TransportLogistic.Models.PaymentViewModel
+
+@{
+    ViewData["Title"] = "Оплата заказа";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Оплата заказа</h3>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <!-- Информация о заказе -->
+                    <div class="alert alert-info">
+                        <h5>Информация о заказе</h5>
+                        <hr />
+                        <p><strong>Номер заказа:</strong> @Model.OrderId</p>
+                        <p><strong>Пассажир:</strong> @Model.PassengerName</p>
+                        <p><strong>Детали:</strong> @Model.OrderDetails</p>
+                        <p><strong>Сумма к оплате:</strong> <span class="h4 text-success">@Model.Amount.ToString("C")</span></p>
+                    </div>
+
+                    <!-- Форма оплаты -->
+                    <form asp-action="Payment" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="OrderId" />
+                        <input type="hidden" asp-for="Amount" />
+                        <input type="hidden" asp-for="OrderDetails" />
+                        <input type="hidden" asp-for="PassengerName" />
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="CardNumber" class="form-label fw-bold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-credit-card"></i></span>
+                                <input asp-for="CardNumber" class="form-control" placeholder="1234 5678 9012 3456" maxlength="16" />
+                            </div>
+                            <span asp-validation-for="CardNumber" class="text-danger"></span>
+                            <small class="form-text text-muted">Для теста используйте: 4111111111111111</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="CardHolder" class="form-label fw-bold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input asp-for="CardHolder" class="form-control" placeholder="IVAN IVANOV" />
+                            </div>
+                            <span asp-validation-for="CardHolder" class="text-danger"></span>
+                            <small class="form-text text-muted">Для теста используйте: TEST USER</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="ExpiryDate" class="form-label fw-bold"></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                        <input asp-for="ExpiryDate" class="form-control" placeholder="MM/YY" maxlength="5" />
+                                    </div>
+                                    <span asp-validation-for="ExpiryDate" class="text-danger"></span>
+                                    <small class="form-text text-muted">Для теста используйте: 12/25</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="CVV" class="form-label fw-bold"></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input asp-for="CVV" class="form-control" placeholder="123" maxlength="3" type="password" />
+                                    </div>
+                                    <span asp-validation-for="CVV" class="text-danger"></span>
+                                    <small class="form-text text-muted">Для теста используйте: 123</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Тестовый режим:</strong> Это демо-версия оплаты. Введите любые тестовые данные для имитации оплаты.
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a asp-action="Index" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Оплатить @Model.Amount.ToString("C")
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Форматирование номера карты
+        document.getElementById('CardNumber').addEventListener('input', function(e) {
+            var value = e.target.value.replace(/\D/g, '');
+            if (value.length > 16) value = value.slice(0, 16);
+            e.target.value = value;
+        });
+
+        // Автоматическое добавление / в дату
+        document.getElementById('ExpiryDate').addEventListener('input', function(e) {
+            var value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.slice(0, 2) + '/' + value.slice(2, 4);
+            }
+            e.target.value = value;
+        });
+
+        // Только цифры для CVV
+        document.getElementById('CVV').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 3);
+        });
+    </script>
+}

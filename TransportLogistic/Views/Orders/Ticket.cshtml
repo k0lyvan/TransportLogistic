@@ -1,0 +1,120 @@
+﻿@model TransportLogistic.Models.TicketViewModel
+
+@{
+    ViewData["Title"] = "Электронный билет";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0 text-center">
+                        <i class="fas fa-ticket-alt"></i> Электронный билет
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                            <h4>Оплата успешно произведена!</h4>
+                            <p>Сохраните этот билет для посадки</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="border rounded p-3 bg-light">
+                                <div class="row">
+                                    <div class="col-md-6 border-end">
+                                        <p><strong>Номер билета:</strong></p>
+                                        <h4 class="text-primary">@Model.TicketNumber</h4>
+
+                                        <p><strong>Номер заказа:</strong></p>
+                                        <p>@Model.OrderId</p>
+
+                                        <p><strong>Пассажир:</strong></p>
+                                        <p>@Model.PassengerName</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Дата и время покупки:</strong></p>
+                                        <p>@DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss")</p>
+
+                                        <p><strong>Место:</strong></p>
+                                        <p><span class="badge bg-primary fs-6">@Model.SeatNumber</span></p>
+
+                                        <p><strong>Стоимость:</strong></p>
+                                        <p class="h5 text-success">@Model.Price.ToString("C")</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="border rounded p-3">
+                                <h5 class="text-center mb-3">Информация о рейсе</h5>
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <i class="fas fa-bus fa-2x text-primary"></i>
+                                        <p><strong>Маршрут:</strong><br />@Model.RouteName</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <i class="fas fa-map-marker-alt fa-2x text-primary"></i>
+                                        <p><strong>Маршрут:</strong><br />@Model.StartCity → @Model.StopCity</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <i class="fas fa-clock fa-2x text-primary"></i>
+                                        <p><strong>Отправление:</strong><br />@Model.DepartureTime.ToString("dd.MM.yyyy HH:mm")</p>
+                                    </div>
+                                </div>
+                                <hr />
+                                <div class="row text-center">
+                                    <div class="col-md-6">
+                                        <i class="fas fa-truck fa-2x text-info"></i>
+                                        <p><strong>Транспорт:</strong><br />@Model.TransportModel</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <i class="fas fa-hashtag fa-2x text-info"></i>
+                                        <p><strong>Гос. номер:</strong><br />@Model.CarNumber</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-qrcode fa-2x mb-2"></i>
+                            <p>При посадке предъявите этот билет (можно в электронном виде)</p>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <button onclick="window.print()" class="btn btn-primary me-md-2">
+                                <i class="fas fa-print"></i> Распечатать билет
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-list"></i> Мои заказы
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @@media print {
+        .btn, .btn-close, .card-header {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+        }
+        .alert {
+            border: 1px solid #ddd !important;
+        }
+    }
+</style>

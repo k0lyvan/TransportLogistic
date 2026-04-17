@@ -564,5 +564,183 @@ namespace TransportLogistic.Controllers
         {
             return _context.Orders.Any(e => e.Id == id);
         }
+
+        // GET: Orders/Payment/5
+        [Authorize]
+        public async Task<IActionResult> Payment(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var order = await _context.Orders
+                .Include(o => o.TripNavigation)
+                    .ThenInclude(t => t.RouteNavigation)
+                .Include(o => o.UserNavigation)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (order == null) return NotFound();
+
+            // Проверяем права доступа
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+
+            if (userRole == "User" && order.User != currentUser.Id)
+            {
+                return Forbid();
+            }
+
+            // Проверяем статус заказа
+            if (order.Stasus != "Ожидание")
+            {
+                TempData["Error"] = "Оплата возможна только для заказов в статусе 'Ожидание'";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var model = new PaymentViewModel
+            {
+                OrderId = order.Id,
+                Amount = order.Price,
+                OrderDetails = $"{order.TripNavigation?.RouteNavigation?.Name} - Место {order.SeatNumber}",
+                PassengerName = order.UserNavigation?.UserName ?? order.User
+            };
+
+            return View(model);
+        }
+
+        // POST: Orders/Payment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> Payment(PaymentViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var order = await _context.Orders
+                .Include(o => o.TripNavigation)
+                .FirstOrDefaultAsync(o => o.Id == model.OrderId);
+
+            if (order == null)
+            {
+                TempData["Error"] = "Заказ не найден";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Проверяем статус заказа
+            if (order.Stasus != "Ожидание")
+            {
+                TempData["Error"] = "Этот заказ уже не может быть оплачен";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // ИМИТАЦИЯ ОПЛАТЫ
+            // Здесь будет логика оплаты через платежную систему
+            bool paymentSuccess = SimulatePayment(model);
+
+            if (paymentSuccess)
+            {
+                // Обновляем статус заказа
+                order.Stasus = "Подтвержден";
+                _context.Update(order);
+                await _context.SaveChangesAsync();
+
+                // Генерируем номер билета
+                var ticketNumber = GenerateTicketNumber(order);
+
+                TempData["Message"] = $"✅ Оплата успешно произведена! Номер билета: {ticketNumber}";
+
+                // Перенаправляем на страницу с билетом
+                return RedirectToAction(nameof(Ticket), new { id = order.Id });
+            }
+            else
+            {
+                TempData["Error"] = "Ошибка при обработке платежа. Попробуйте еще раз.";
+                return RedirectToAction(nameof(Payment), new { id = order.Id });
+            }
+        }
+
+        // GET: Orders/Ticket/5
+        [Authorize]
+        public async Task<IActionResult> Ticket(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var order = await _context.Orders
+                .Include(o => o.TripNavigation)
+                    .ThenInclude(t => t.RouteNavigation)
+                        .ThenInclude(r => r.StartNavigation)
+                .Include(o => o.TripNavigation)
+                    .ThenInclude(t => t.RouteNavigation)
+                        .ThenInclude(r => r.StopNavigation)
+                .Include(o => o.TripNavigation)
+                    .ThenInclude(t => t.TransportNavigation)
+                .Include(o => o.UserNavigation)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (order == null) return NotFound();
+
+            // Проверяем права доступа
+            var currentUser = await _userManager.GetUserAsync(User);
+            var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+
+            if (userRole == "User" && order.User != currentUser.Id)
+            {
+                return Forbid();
+            }
+
+            var ticket = new TicketViewModel
+            {
+                OrderId = order.Id,
+                TicketNumber = GenerateTicketNumber(order),
+                RouteName = order.TripNavigation?.RouteNavigation?.Name ?? "Неизвестный маршрут",
+                StartCity = order.TripNavigation?.RouteNavigation?.StartNavigation?.Name ?? "Не указано",
+                StopCity = order.TripNavigation?.RouteNavigation?.StopNavigation?.Name ?? "Не указано",
+                DepartureTime = order.TripNavigation?.DepatureTime ?? DateTime.Now,
+                ArrivalTime = order.TripNavigation?.ArrivalTime ?? DateTime.Now,
+                SeatNumber = order.SeatNumber,
+                Price = order.Price,
+                PassengerName = order.UserNavigation?.UserName ?? order.User,
+                TransportModel = order.TripNavigation?.TransportNavigation?.Model ?? "Не указан",
+                CarNumber = order.TripNavigation?.TransportNavigation?.CarNumber ?? "Не указан"
+            };
+
+            return View(ticket);
+        }
+
+        // Вспомогательные методы
+        private bool SimulatePayment(PaymentViewModel model)
+        {
+            // Имитация успешной оплаты
+            // В реальном проекте здесь был бы вызов API платежной системы
+
+            // Простая валидация номера карты (заглушка)
+            if (string.IsNullOrEmpty(model.CardNumber) || model.CardNumber.Length < 16)
+                return false;
+
+            if (string.IsNullOrEmpty(model.CardHolder) || model.CardHolder.Length < 3)
+                return false;
+
+            if (string.IsNullOrEmpty(model.ExpiryDate) || model.ExpiryDate.Length != 5)
+                return false;
+
+            if (string.IsNullOrEmpty(model.CVV) || model.CVV.Length < 3)
+                return false;
+
+            // Имитируем успешную оплату в 90% случаев
+            var random = new Random();
+            return random.Next(1, 101) <= 90;
+        }
+
+        private string GenerateTicketNumber(Order order)
+        {
+            // Формат билета: TL-YYYYMMDD-XXXXX
+            // TL - TransportLogistic
+            // YYYYMMDD - дата
+            // XXXXX - случайный номер
+            var date = DateTime.Now.ToString("yyyyMMdd");
+            var random = new Random().Next(10000, 99999);
+            return $"TL-{date}-{random}-{order.Id}";
+        }
     }
 }
