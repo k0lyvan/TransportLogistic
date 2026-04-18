@@ -16,7 +16,7 @@ namespace TransportLogistic.Controllers
             _context = context;
         }
 
-        // GET: Transports - доступ всем авторизованным
+        // GET: Transports 
         [Authorize]
         public async Task<IActionResult> Index()
         {
@@ -38,7 +38,7 @@ namespace TransportLogistic.Controllers
             return View(transport);
         }
 
-        // GET: Transports/Create - только Admin и Dispatcher
+        // GET: Transports/Create 
         [Authorize(Roles = "Admin,Dispatcher")]
         public IActionResult Create()
         {
@@ -61,7 +61,7 @@ namespace TransportLogistic.Controllers
             return View(transport);
         }
 
-        // GET: Transports/Edit/5 - только Admin и Dispatcher
+        // GET: Transports/Edit/5 
         [Authorize(Roles = "Admin,Dispatcher")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -99,7 +99,7 @@ namespace TransportLogistic.Controllers
             return View(transport);
         }
 
-        // GET: Transports/Delete/5 - только Admin
+        // GET: Transports/Delete/5 
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {

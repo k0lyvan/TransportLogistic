@@ -16,7 +16,7 @@ namespace TransportLogistic.Controllers
             _context = context;
         }
 
-        // GET: Routes - доступ всем авторизованным
+        // GET: Routes 
         [Authorize]
         public async Task<IActionResult> Index()
         {
@@ -43,7 +43,7 @@ namespace TransportLogistic.Controllers
             return View(route);
         }
 
-        // GET: Routes/Create - только Admin и Dispatcher
+        // GET: Routes/Create 
         [Authorize(Roles = "Admin,Dispatcher")]
         public async Task<IActionResult> Create()
         {

@@ -81,7 +81,7 @@ namespace TransportLogistic.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 
-            // Обновляем email
+
             user.Email = email;
             user.UserName = email;
 
@@ -89,13 +89,12 @@ namespace TransportLogistic.Controllers
 
             if (updateResult.Succeeded)
             {
-                // Получаем текущие роли пользователя
+
                 var currentRoles = await _userManager.GetRolesAsync(user);
 
-                // Удаляем все текущие роли
+
                 await _userManager.RemoveFromRolesAsync(user, currentRoles);
 
-                // Добавляем выбранные роли
                 if (selectedRoles != null && selectedRoles.Any())
                 {
                     await _userManager.AddToRolesAsync(user, selectedRoles);
@@ -137,7 +136,7 @@ namespace TransportLogistic.Controllers
             var user = await _userManager.FindByIdAsync(id);
             if (user != null)
             {
-                // Проверяем, есть ли связанные заказы
+
                 var hasOrders = await _context.Orders.AnyAsync(o => o.User == user.Email);
                 if (hasOrders)
                 {

@@ -88,7 +88,7 @@ namespace TransportLogistic.Controllers
         [Authorize(Roles = "Admin,Dispatcher")]
         public async Task<IActionResult> Create([Bind("Route,DepatureTime,ArrivalTime,Transport,Driver,Conductor,Price")] Trip trip)  // ← ДОБАВИЛИ Price
         {
-            // Удаляем навигационные свойства из валидации
+
             ModelState.Remove("DriverNavigation");
             ModelState.Remove("ConductorNavigation");
             ModelState.Remove("RouteNavigation");
@@ -97,7 +97,7 @@ namespace TransportLogistic.Controllers
 
             if (ModelState.IsValid)
             {
-                // Проверяем время
+
                 if (trip.DepatureTime >= trip.ArrivalTime)
                 {
                     ModelState.AddModelError("DepatureTime", "Время отправления должно быть раньше времени прибытия");
@@ -105,7 +105,7 @@ namespace TransportLogistic.Controllers
                     return View(trip);
                 }
 
-                // Проверяем цену
+
                 if (trip.Price <= 0)
                 {
                     ModelState.AddModelError("Price", "Цена должна быть больше 0");
@@ -113,7 +113,7 @@ namespace TransportLogistic.Controllers
                     return View(trip);
                 }
 
-                // Проверяем, существует ли водитель
+
                 if (!string.IsNullOrEmpty(trip.Driver))
                 {
                     var driverExists = await _context.Users.AnyAsync(u => u.Id == trip.Driver);
@@ -125,7 +125,7 @@ namespace TransportLogistic.Controllers
                     }
                 }
 
-                // Проверяем, существует ли кондуктор (если указан)
+
                 if (!string.IsNullOrEmpty(trip.Conductor))
                 {
                     var conductorExists = await _context.Users.AnyAsync(u => u.Id == trip.Conductor);
@@ -143,7 +143,7 @@ namespace TransportLogistic.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Если есть ошибки, выводим их в консоль для отладки
+
             foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
             {
                 Console.WriteLine($"Validation Error: {error.ErrorMessage}");
@@ -175,7 +175,7 @@ namespace TransportLogistic.Controllers
         {
             if (id != trip.Id) return NotFound();
 
-            // Удаляем навигационные свойства из валидации
+
             ModelState.Remove("DriverNavigation");
             ModelState.Remove("ConductorNavigation");
             ModelState.Remove("RouteNavigation");
@@ -252,23 +252,23 @@ namespace TransportLogistic.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // МЕТОД ЗАПОЛНЕНИЯ ВЫПАДАЮЩИХ СПИСКОВ 
+
         private async Task FillSelectLists(int? selectedRoute = null, int? selectedTransport = null,
                                           string? selectedDriver = null, string? selectedConductor = null)
         {
-            // Маршруты
+
             ViewBag.Routes = new SelectList(
                 await _context.Routes.ToListAsync(),
                 "Id", "Name", selectedRoute
             );
 
-            // Транспорт
+
             ViewBag.Transports = new SelectList(
                 await _context.Transports.ToListAsync(),
                 "Id", "Model", selectedTransport
             );
 
-            // Водители (пользователи с ролью Driver)
+
             var drivers = await (
                 from user in _context.Users
                 join userRole in _context.UserRoles on user.Id equals userRole.UserId
@@ -284,7 +284,7 @@ namespace TransportLogistic.Controllers
                 selectedDriver
             );
 
-            // Кондукторы (пользователи с ролью Conductor)
+
             var conductors = await (
                 from user in _context.Users
                 join userRole in _context.UserRoles on user.Id equals userRole.UserId

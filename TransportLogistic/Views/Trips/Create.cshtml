@@ -56,10 +56,14 @@
                 <span asp-validation-for="Conductor" class="text-danger"></span>
             </div>
 
-            <!-- ★★★ ДОБАВЬТЕ ПОЛЕ ДЛЯ ЦЕНЫ ★★★ -->
             <div class="form-group mb-3">
                 <label asp-for="Price" class="control-label">Цена билета (₽)</label>
-                <input asp-for="Price" class="form-control" type="number" step="1" min="0" placeholder="Например: 1500" />
+                <input asp-for="Price" class="form-control" type="text"
+                       data-val="true"
+                       data-val-number="Поле Price должно быть числом"
+                       data-val-required="Поле Price обязательно"
+                       data-val-regex-pattern="^\d+$"
+                       data-val-regex="Цена должна быть целым числом"                        />
                 <span asp-validation-for="Price" class="text-danger"></span>
             </div>
 

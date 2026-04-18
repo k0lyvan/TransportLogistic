@@ -59,7 +59,13 @@
 
             <div class="form-group mb-3">
                 <label asp-for="Price" class="control-label">Цена билета (₽)</label>
-                <input asp-for="Price" class="form-control" type="number" step="1" min="0" />
+                <input asp-for="Price" class="form-control" type="text"
+                       data-val="true"
+                       data-val-number="Поле Price должно быть числом"
+                       data-val-required="Поле Price обязательно"
+                       data-val-regex-pattern="^\d+$"
+                       data-val-regex="Цена должна быть целым числом"
+                       value="@Model.Price.ToString("F0")" />
                 <span asp-validation-for="Price" class="text-danger"></span>
             </div>
 

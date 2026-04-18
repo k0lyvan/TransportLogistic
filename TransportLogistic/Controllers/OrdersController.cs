@@ -35,16 +35,14 @@ namespace TransportLogistic.Controllers
                         .ThenInclude(r => r.StopNavigation)
                 .Include(o => o.TripNavigation)
                     .ThenInclude(t => t.TransportNavigation)
-                .Include(o => o.UserNavigation); // Теперь работает, так как связь по Id
+                .Include(o => o.UserNavigation); 
 
             if (userRole == "User")
             {
-                // Сравниваем Id пользователя
                 orders = orders.Where(o => o.User == currentUser.Id);
             }
             else if (userRole == "Driver" || userRole == "Conductor")
-            {
-                // Для Driver и Conductor используем UserName, так как в Trip хранится UserName
+            {                
                 orders = orders.Where(o => o.TripNavigation.Driver == currentUser.UserName ||
                                            o.TripNavigation.Conductor == currentUser.UserName);
             }
@@ -164,7 +162,6 @@ namespace TransportLogistic.Controllers
         {
             try
             {
-                // 1. ПОЛУЧАЕМ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null)
                 {
@@ -173,11 +170,9 @@ namespace TransportLogistic.Controllers
                     return View(order);
                 }
 
-                // 2. УСТАНАВЛИВАЕМ ЗНАЧЕНИЯ
-                order.User = currentUser.Id; // Сохраняем ID пользователя
-                order.Stasus = "Ожидает подтверждения";   // Короткий статус (14 символов)
+                order.User = currentUser.Id; 
+                order.Stasus = "Ожидает подтверждения";   
 
-                // 3. ПРОВЕРКА ВЫБРАННОГО РЕЙСА
                 if (order.Trip <= 0)
                 {
                     ModelState.AddModelError("Trip", "Пожалуйста, выберите рейс");
@@ -185,7 +180,6 @@ namespace TransportLogistic.Controllers
                     return View(order);
                 }
 
-                // 4. ПОЛУЧАЕМ ИНФОРМАЦИЮ О РЕЙСЕ
                 var trip = await _context.Trips
                     .Include(t => t.RouteNavigation)
                     .Include(t => t.TransportNavigation)
@@ -198,7 +192,6 @@ namespace TransportLogistic.Controllers
                     return View(order);
                 }
 
-                // 5. ПРОВЕРКА ДАТЫ РЕЙСА
                 if (trip.DepatureTime <= DateTime.Now)
                 {
                     ModelState.AddModelError("Trip", "Нельзя забронировать билет на прошедший рейс");
@@ -206,10 +199,8 @@ namespace TransportLogistic.Controllers
                     return View(order);
                 }
 
-                // 6. УСТАНАВЛИВАЕМ ЦЕНУ ИЗ РЕЙСА
                 order.Price = trip.Price;
 
-                // 7. ПРОВЕРКА НОМЕРА МЕСТА
                 if (order.SeatNumber <= 0)
                 {
                     ModelState.AddModelError("SeatNumber", "Номер места должен быть положительным числом");
@@ -217,7 +208,6 @@ namespace TransportLogistic.Controllers
                     return View(order);
                 }
 
-                // 8. ПРОВЕРКА ВМЕСТИТЕЛЬНОСТИ ТРАНСПОРТА
                 if (trip.TransportNavigation != null && order.SeatNumber > trip.TransportNavigation.Capacity)
                 {
                     ModelState.AddModelError("SeatNumber", $"Максимальный номер места - {trip.TransportNavigation.Capacity}");
@@ -225,7 +215,6 @@ namespace TransportLogistic.Controllers
                     return View(order);
                 }
 
-                // 9. ПРОВЕРКА СВОБОДНОГО МЕСТА
                 var existingOrder = await _context.Orders
                     .FirstOrDefaultAsync(o => o.Trip == order.Trip && o.SeatNumber == order.SeatNumber && o.Stasus != "Отменен");
 
@@ -236,17 +225,14 @@ namespace TransportLogistic.Controllers
                     return View(order);
                 }
 
-                // 10. УДАЛЯЕМ НАВИГАЦИОННЫЕ СВОЙСТВА ИЗ ВАЛИДАЦИИ
                 ModelState.Remove("UserNavigation");
                 ModelState.Remove("TripNavigation");
                 ModelState.Remove("Price");
                 ModelState.Remove("Stasus");
                 ModelState.Remove("User");
 
-                // 11. ПРОВЕРКА МОДЕЛИ
                 if (ModelState.IsValid)
                 {
-                    // ДИАГНОСТИКА ПЕРЕД СОХРАНЕНИЕМ
                     Console.WriteLine("=== ПОПЫТКА СОХРАНЕНИЯ ЗАКАЗА ===");
                     Console.WriteLine($"Trip ID: {order.Trip}");
                     Console.WriteLine($"Seat Number: {order.SeatNumber}");
@@ -254,13 +240,11 @@ namespace TransportLogistic.Controllers
                     Console.WriteLine($"Price: {order.Price}");
                     Console.WriteLine($"Status: '{order.Stasus}'");
 
-                    // ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ ПОЛЬЗОВАТЕЛЯ
                     var userExists = await _context.Users.AnyAsync(u => u.Id == order.User);
                     Console.WriteLine($"User exists in database: {userExists}");
 
                     if (!userExists)
                     {
-                        // Если пользователь не найден, пробуем сохранить UserName
                         Console.WriteLine($"User with ID '{order.User}' not found. Trying with UserName...");
                         order.User = currentUser.UserName;
 
@@ -275,13 +259,11 @@ namespace TransportLogistic.Controllers
                         }
                     }
 
-                    // ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ РЕЙСА
                     var tripExists = await _context.Trips.AnyAsync(t => t.Id == order.Trip);
                     Console.WriteLine($"Trip exists in database: {tripExists}");
 
                     try
                     {
-                        // СОХРАНЯЕМ ЗАКАЗ
                         _context.Orders.Add(order);
                         Console.WriteLine($"Order added to context. State: {_context.Entry(order).State}");
 
@@ -293,19 +275,16 @@ namespace TransportLogistic.Controllers
                     }
                     catch (DbUpdateException dbEx)
                     {
-                        // ОБРАБОТКА ОШИБОК БАЗЫ ДАННЫХ
                         Console.WriteLine($"DbUpdateException: {dbEx.Message}");
 
                         if (dbEx.InnerException != null)
                         {
                             Console.WriteLine($"Inner Exception: {dbEx.InnerException.Message}");
 
-                            // ПРОВЕРЯЕМ ОШИБКУ ВНЕШНЕГО КЛЮЧА
                             if (dbEx.InnerException.Message.Contains("FOREIGN KEY"))
                             {
                                 ModelState.AddModelError("", "Ошибка связи с пользователем. Попробуйте выйти и войти снова.");
 
-                                // ПРОБУЕМ ОБХОДНОЙ ПУТЬ - СОХРАНЯЕМ БЕЗ СВЯЗИ
                                 Console.WriteLine("Attempting to save without foreign key constraint...");
 
                                 var sql = @"
@@ -334,10 +313,8 @@ namespace TransportLogistic.Controllers
                     }
                 }
 
-                // 12. ЕСЛИ ОШИБКА - ПЕРЕЗАГРУЖАЕМ СПИСОК РЕЙСОВ
                 await LoadTripsForCreate(order.Trip);
 
-                // ВЫВОДИМ ОШИБКИ МОДЕЛИ
                 foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
                 {
                     Console.WriteLine($"Model Error: {error.ErrorMessage}");
@@ -347,7 +324,6 @@ namespace TransportLogistic.Controllers
             }
             catch (Exception ex)
             {
-                // 13. ГЛОБАЛЬНАЯ ОБРАБОТКА ОШИБОК
                 Console.WriteLine($"UNHANDLED EXCEPTION: {ex.Message}");
                 Console.WriteLine($"Stack Trace: {ex.StackTrace}");
 
@@ -503,17 +479,16 @@ namespace TransportLogistic.Controllers
         {
             if (id != order.Id) return NotFound();
 
-            // Находим существующий заказ в базе данных
             var existingOrder = await _context.Orders
                 .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (existingOrder == null) return NotFound();
 
-            // Сохраняем оригинальное значение User (оно не должно меняться)
+
             order.User = existingOrder.User;
 
-            // Удаляем навигационные свойства из валидации
+
             ModelState.Remove("UserNavigation");
             ModelState.Remove("TripNavigation");
             ModelState.Remove("User");
@@ -522,7 +497,6 @@ namespace TransportLogistic.Controllers
             {
                 try
                 {
-                    // Явно указываем, какие поля обновляем
                     _context.Orders.Update(order);
                     await _context.SaveChangesAsync();
                     TempData["Message"] = "Заказ успешно обновлен!";
@@ -540,7 +514,6 @@ namespace TransportLogistic.Controllers
                 }
             }
 
-            // Если ошибка - перезагружаем список рейсов
             var trips = await _context.Trips
                 .Include(t => t.RouteNavigation)
                 .Where(t => t.DepatureTime > DateTime.Now)
@@ -603,7 +576,6 @@ namespace TransportLogistic.Controllers
 
             if (order == null) return NotFound();
 
-            // Проверяем права доступа
             var currentUser = await _userManager.GetUserAsync(User);
             var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
 
@@ -612,7 +584,6 @@ namespace TransportLogistic.Controllers
                 return Forbid();
             }
 
-            // Проверяем статус заказа
             if (order.Stasus != "Ожидает подтверждения")
             {
                 TempData["Error"] = "Оплата возможна только для заказов в статусе 'Ожидает подтверждения'";
@@ -651,30 +622,24 @@ namespace TransportLogistic.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Проверяем статус заказа
             if (order.Stasus != "Ожидает подтверждения")
             {
                 TempData["Error"] = "Этот заказ уже не может быть оплачен";
                 return RedirectToAction(nameof(Index));
             }
 
-            // ИМИТАЦИЯ ОПЛАТЫ
-            // Здесь будет логика оплаты через платежную систему
             bool paymentSuccess = SimulatePayment(model);
 
             if (paymentSuccess)
             {
-                // Обновляем статус заказа
                 order.Stasus = "Подтвержден";
                 _context.Update(order);
                 await _context.SaveChangesAsync();
 
-                // Генерируем номер билета
                 var ticketNumber = GenerateTicketNumber(order);
 
                 TempData["Message"] = $"✅ Оплата успешно произведена! Номер билета: {ticketNumber}";
 
-                // Перенаправляем на страницу с билетом
                 return RedirectToAction(nameof(Ticket), new { id = order.Id });
             }
             else
@@ -704,7 +669,6 @@ namespace TransportLogistic.Controllers
 
             if (order == null) return NotFound();
 
-            // Проверяем права доступа
             var currentUser = await _userManager.GetUserAsync(User);
             var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
 
@@ -732,13 +696,8 @@ namespace TransportLogistic.Controllers
             return View(ticket);
         }
 
-        // Вспомогательные методы
         private bool SimulatePayment(PaymentViewModel model)
         {
-            // Имитация успешной оплаты
-            // В реальном проекте здесь был бы вызов API платежной системы
-
-            // Простая валидация номера карты (заглушка)
             if (string.IsNullOrEmpty(model.CardNumber) || model.CardNumber.Length < 16)
                 return false;
 
@@ -751,17 +710,12 @@ namespace TransportLogistic.Controllers
             if (string.IsNullOrEmpty(model.CVV) || model.CVV.Length < 3)
                 return false;
 
-            // Имитируем успешную оплату в 90% случаев
             var random = new Random();
             return random.Next(1, 101) <= 90;
         }
 
         private string GenerateTicketNumber(Order order)
         {
-            // Формат билета: TL-YYYYMMDD-XXXXX
-            // TL - TransportLogistic
-            // YYYYMMDD - дата
-            // XXXXX - случайный номер
             var date = DateTime.Now.ToString("yyyyMMdd");
             var random = new Random().Next(10000, 99999);
             return $"TL-{date}-{random}-{order.Id}";
