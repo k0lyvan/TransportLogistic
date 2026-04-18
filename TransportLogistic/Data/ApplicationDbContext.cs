@@ -69,7 +69,6 @@ public partial class ApplicationDbContext : IdentityDbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Orders_trips");
 
-            // Добавьте связь с пользователем
             entity.HasOne(e => e.UserNavigation)
                 .WithMany()
                 .HasForeignKey(e => e.User)
@@ -151,14 +150,13 @@ public partial class ApplicationDbContext : IdentityDbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_trips_transports");
 
-            // Связь с водителем (Driver)
+
             entity.HasOne(d => d.DriverNavigation)
                 .WithMany()
                 .HasForeignKey(d => d.Driver)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_trips_AspNetUsers_Driver");
 
-            // Связь с кондуктором (Conductor) - опционально
             entity.HasOne(d => d.ConductorNavigation)
                 .WithMany()
                 .HasForeignKey(d => d.Conductor)
